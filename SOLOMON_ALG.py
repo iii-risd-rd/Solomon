@@ -77,28 +77,23 @@ def compute_all_different(data_list):
     return pd.DataFrame(output_data_list, columns = ['time_dif', 'bacteral', 'Formaldehyde'])
     
 ready_data_dict = {}
-for key, value in group_data_dict.items():
-    ready_data_dict['key'] = compute_all_different(value)
+for key, value in average_data_dict.items():
+    ready_data_dict[key] = compute_all_different(value)
 
+all_data = pd.concat(ready_data_dict)
+all_data = all_data.reset_index(drop = True)
 
-
-
-
-
-
-#unsupervised------------------------------------------------------------------
-from sklearn.neighbors import NearestNeighbors
-nbrs = NearestNeighbors(n_neighbors = 5, algorithm = 'ball_tree').fit(x)
-
+all_x = all_data['time_dif'].to_frame()
+all_y = all_data['bacteral'].to_frame()
 
 
 #select a area from datalist & splite to train test
-from sklearn.cross_validation import train_test_split
-x_train, x_test, y_train, y_test = train_test_split()
+from sklearn.model_selection import train_test_split
+x_train, x_test, y_train, y_test = train_test_split(all_x, all_y, test_size = 0.3)
 
 #supervised--------------------------------------------------------------------
 #pipeline lib
-from sklearn.pipelint import Pipeline
+from sklearn.pipeline import Pipeline
 from sklearn.pipeline import FeatureUnion
 from sklearn.model_selection import GridSearchCV
 #preprocess lib
@@ -110,31 +105,26 @@ from sklearn.decomposition import PCA
 #models lib
 from sklearn.linear_model import LogisticRegression, LinearRegression
 from sklearn.tree import DecisionTreeClassifier
-from xgboost import XGBClassifier
+#from xgboost import XGBClassifier
 from sklearn.ensemble import RandomForestClassifier
 #criteria lib
 from sklearn.metrics import mean_squared_error
 #define methods
 std_sclr = StandardScaler()
-poly  = PolynomialFeatures()
-pca = PCA()
-rf = RandomForestClassifier(random_state = random_seed,n_estimators=100)
-from_model = SelectFromModel(estimator = rf)
+poly  = PolynomialFeatures(degree = 5)
+
 lr = LinearRegression()
-dt = DecisionTreeClassifier()
 xgb = XGBClassifier()
 
 #bulid feature pipeline
-feature_methods = [('poly', poly),
-                   ('pca', pca)]
+feature_methods = [('poly', poly)]
 creat_features = FeatureUnion(feature_methods)
 #bulid data pipeline
 pipeline = Pipeline([('sclr',std_sclr),
                      ('create_fea',creat_features),
-                     ('from_model', from_model),
                      ('clf', lr)])
 #training
 trained_model = pipeline.fit(x_train, y_train)
 #testing
 y_test_pred = trained_model.predict(x_test)
-y_pred = mean_squared_error(y_test, y_test_pred)
+rmse = mean_squared_error(y_test, y_test_pred)
